@@ -17,13 +17,15 @@ namespace Malig_on_Pad
 
         private bool name = false;
 
+        int flag;
+
         string orig;
 
         public Form1()
         {
             InitializeComponent();
 
-            toolStripStatusLabel1.Text = "Ready";
+            updateStatLabel("Ready");
 
             orig = richTextBox1.Text;
         }
@@ -31,28 +33,6 @@ namespace Malig_on_Pad
         private void updateStatLabel(string status)
         {
             toolStripStatusLabel1.Text = status;
-        }
-
-        private void openToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            updateStatLabel("Open");
-
-            OpenFileDialog op = new OpenFileDialog();
-            op.Title = "open";
-            op.Filter = "Text Document(*.txt)|*.txt| All Files(*.*)|*.*";
-            if (op.ShowDialog() == DialogResult.OK)
-            {
-                unsavedChanges = false;
-
-                richTextBox1.LoadFile(op.FileName, RichTextBoxStreamType.PlainText);
-                string flName = Path.GetFileName(op.FileName);
-                richTextBox1.LoadFile(op.FileName, RichTextBoxStreamType.PlainText);
-                this.Text = flName + " - Malig-on_Pad";
-
-                orig = richTextBox1.Text;
-
-                name = false;
-            }
         }
 
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
@@ -64,22 +44,27 @@ namespace Malig_on_Pad
             op.Filter = "Text Document(*.txt)|*.txt| All Files(*.*)|*.*";
             if (op.ShowDialog() == DialogResult.OK)
             {
-                unsavedChanges = false;
-
                 richTextBox1.SaveFile(op.FileName, RichTextBoxStreamType.PlainText);
                 string flName = Path.GetFileName(op.FileName);
                 richTextBox1.LoadFile(op.FileName, RichTextBoxStreamType.PlainText);
-                this.Text = flName + " - Malig-on_Pad";
+                this.Text = flName;
 
                 orig = richTextBox1.Text;
 
+                unsavedChanges = false;
+
                 name = false;
-            }     
+            }
         }
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             updateStatLabel("Exit");
+
+            if (unsavedChanges)
+            {
+                saveChanges();
+            }
 
             DialogResult result = MessageBox.Show("Do you want to close this window?", "Close Window", MessageBoxButtons.YesNo);
             if (result == DialogResult.Yes)
@@ -148,15 +133,17 @@ namespace Malig_on_Pad
             updateStatLabel("Color");
             ColorDialog op = new ColorDialog();
             if (op.ShowDialog() == DialogResult.OK)
-            richTextBox1.ForeColor = op.Color;
+                richTextBox1.ForeColor = op.Color;
 
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            string saveText = this.Text.Trim('*');
+
             if (unsavedChanges is true)
             {
-                var result = MessageBox.Show("Save changes before closing?", "Unsaved Changes", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                var result = MessageBox.Show("Do you want to save changes to " + saveText + "?", "Unsaved Changes", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
 
                 switch (result)
                 {
@@ -181,14 +168,15 @@ namespace Malig_on_Pad
         private void richTextBox1_TextChanged(object sender, EventArgs e)
         {
             unsavedChanges = true;
-            if(richTextBox1.Text == orig)
+            if (richTextBox1.Text.Count() == orig.Count())
             {
                 unsavedChanges = false;
                 this.Text = this.Text.Trim('*');
                 name = false;
             }
-            else if(!name)
+            else if (!name)
             {
+                unsavedChanges = true;
                 this.Text = '*' + this.Text;
                 name = true;
             }
@@ -198,32 +186,88 @@ namespace Malig_on_Pad
         {
             if (unsavedChanges is true)
             {
-                var result = MessageBox.Show("Save changes before closing?", "Unsaved Changes", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
-
-                switch (result)
-                {
-                    case DialogResult.Yes:
-                        SaveFileDialog op = new SaveFileDialog();
-                        op.Title = "Save";
-                        op.Filter = "Text Document(*.txt)|*.txt| All Files(*.*)|*.*";
-                        if (op.ShowDialog() == DialogResult.OK)
-                            richTextBox1.SaveFile(op.FileName, RichTextBoxStreamType.PlainText);
-                        this.Text = op.FileName;
-                        unsavedChanges = false;
-                        break;
-                    case DialogResult.No:
-                        break;
-                }
-
-                this.Hide();
-                Form1 f1 = new Form1();
-                f1.Show();
+                saveChanges();
             }
             else
+            {
+                flag = 1;
+            }
+
+            if (flag == 1)
             {
                 this.Hide();
                 Form1 f1 = new Form1();
                 f1.Show();
+            }
+        }
+
+        private void openToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (unsavedChanges)
+            {
+                saveChanges();
+            }
+            else
+            {
+                flag = 1;
+            }
+
+            if (flag == 1)
+            {
+                updateStatLabel("Open");
+
+                OpenFileDialog op = new OpenFileDialog();
+                op.Title = "open";
+                op.Filter = "Text Document(*.txt)|*.txt| All Files(*.*)|*.*";
+                if (op.ShowDialog() == DialogResult.OK)
+                {
+                    richTextBox1.LoadFile(op.FileName, RichTextBoxStreamType.PlainText);
+                    string flName = Path.GetFileName(op.FileName);
+                    this.Text = flName;
+
+                    orig = richTextBox1.Text;
+
+                    unsavedChanges = false;
+
+                    name = false;
+                }
+            }
+        }
+
+        private void saveChanges()
+        {
+            string saveText = this.Text.Trim('*');
+
+            if (unsavedChanges is true)
+            {
+                var result = MessageBox.Show("Do you want to save changes to " + saveText + "?", "Unsaved Changes", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+
+                if (result == DialogResult.Yes)
+                {
+                    SaveFileDialog op = new SaveFileDialog();
+                    op.Title = "Save";
+                    op.Filter = "Text Document(*.txt)|*.txt| All Files(*.*)|*.*";
+                    if (op.ShowDialog() == DialogResult.OK)
+                    {
+                        richTextBox1.SaveFile(op.FileName, RichTextBoxStreamType.PlainText);
+                    }
+                        
+                    this.Text = op.FileName;
+                    unsavedChanges = false;
+                    flag = 1;
+                }
+                else if (result == DialogResult.No)
+                {
+                    flag = 1;
+                }
+                else
+                {
+                    flag = 0;
+                }
+            }
+            else
+            {
+                flag = 0;
             }
         }
     }
